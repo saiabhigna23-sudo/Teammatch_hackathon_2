@@ -1,0 +1,1867 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>TeamMatch | Hackathon Teammate Finder</title>
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  <!-- React & Babel -->
+  <script src="https://unpkg.com/react@18/umd/react.production.min.js" crossorigin></script>
+  <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js" crossorigin></script>
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['"Plus Jakarta Sans"', 'system-ui', 'sans-serif'],
+            mono: ['"JetBrains Mono"', 'monospace'],
+          },
+          colors: {
+            slate: {
+              850: '#111827',
+              900: '#0f172a',
+              950: '#080d1a',
+            }
+          }
+        }
+      }
+    }
+  </script>
+
+  <style>
+    body {
+      background-color: #060913;
+      color: #f1f5f9;
+      font-family: 'Plus Jakarta Sans', system-ui, sans-serif;
+    }
+    ::-webkit-scrollbar { width: 6px; height: 6px; }
+    ::-webkit-scrollbar-track { background: rgba(15, 23, 42, 0.6); }
+    ::-webkit-scrollbar-thumb { background: rgba(99, 102, 241, 0.4); border-radius: 9999px; }
+    ::-webkit-scrollbar-thumb:hover { background: rgba(99, 102, 241, 0.7); }
+    .glow-card { box-shadow: 0 0 25px -5px rgba(99, 102, 241, 0.12); }
+    .glow-card:hover { box-shadow: 0 0 35px -2px rgba(139, 92, 246, 0.22); }
+  </style>
+</head>
+<body class="min-h-screen bg-[#060913] text-slate-100 antialiased selection:bg-indigo-500 selection:text-white">
+
+  <div id="root"></div>
+
+  <script type="text/babel">
+    const { useState, useEffect, useRef } = React;
+
+    // --- Inline Lucide SVG Icons ---
+    const Icon = ({ name, className = "w-4 h-4", ...props }) => {
+      const icons = {
+        users: <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2M9 7a4 4 0 1 0 0-8 4 4 0 0 0 0 8zm13 14v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75" />,
+        sparkles: <path d="m12 3-1.9 5.8a2 2 0 0 1-1.3 1.3L3 12l5.8 1.9a2 2 0 0 1 1.3 1.3L12 21l1.9-5.8a2 2 0 0 1 1.3-1.3L21 12l-5.8-1.9a2 2 0 0 1-1.3-1.3Z" />,
+        message: <path d="M7.9 20A9 9 0 1 0 4 16.1L2 22Z" />,
+        search: <><circle cx="11" cy="11" r="8" /><path d="m21 21-4.3-4.3" /></>,
+        mapPin: <><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z" /><circle cx="12" cy="10" r="3" /></>,
+        lock: <><rect width="18" height="11" x="3" y="11" rx="2" ry="2" /><path d="M7 11V7a5 5 0 0 1 10 0v4" /></>,
+        unlock: <><rect width="18" height="11" x="3" y="11" rx="2" ry="2" /><path d="M7 11V7a5 5 0 0 1 9.9-1" /></>,
+        bell: <><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9" /><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0" /></>,
+        calendar: <><rect width="18" height="18" x="3" y="4" rx="2" /><path d="M16 2v4M8 2v4M3 10h18" /></>,
+        award: <><circle cx="12" cy="8" r="6" /><path d="M15.477 12.89 17 22l-5-3-5 3 1.523-9.11" /></>,
+        send: <path d="m22 2-7 20-4-9-9-4Z" />,
+        shield: <path d="M20 13c0 5-8 9-8 9s-8-4-8-9V5l8-3 8 3Z" />,
+        shieldCheck: <><path d="M20 13c0 5-8 9-8 9s-8-4-8-9V5l8-3 8 3Z" /><path d="m9 12 2 2 4-4" /></>,
+        check: <path d="M20 6 9 17l-5-5" />,
+        checkCircle: <><circle cx="12" cy="12" r="10" /><path d="m9 12 2 2 4-4" /></>,
+        x: <path d="M18 6 6 18M6 6l12 12" />,
+        mail: <><rect width="20" height="16" x="2" y="4" rx="2" /><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7" /></>,
+        phone: <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z" />,
+        user: <><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2" /><circle cx="12" cy="7" r="4" /></>,
+        logOut: <><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" /><polyline points="16 17 21 12 16 7" /><line x1="21" x2="9" y1="12" y2="12" /></>,
+        arrowRight: <path d="M5 12h14M12 5l7 7-7 7" />,
+        chevronDown: <path d="m6 9 6 6 6-6" />,
+        chevronLeft: <path d="m15 18-6-6 6-6" />,
+        chevronRight: <path d="m9 18 6-6-6-6" />,
+        copy: <><rect width="14" height="14" x="8" y="8" rx="2" ry="2" /><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2" /></>,
+        plus: <path d="M12 5v14M5 12h14" />,
+        trash: <><path d="M3 6h18M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2" /></>,
+        rotateCcw: <><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8" /><path d="M3 3v5h5" /></>,
+        zap: <path d="M13 2 3 14h9l-1 8 10-12h-9l1-8z" />,
+        menu: <path d="M4 12h16M4 6h16M4 18h16" />
+      };
+
+      return (
+        <svg
+          xmlns="http://www.w3.org/2000/svg"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="2"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          className={className}
+          {...props}
+        >
+          {icons[name] || null}
+        </svg>
+      );
+    };
+
+    // --- Initial Seed Database ---
+    const INITIAL_USERS = [
+      {
+        id: 'user-alex-1',
+        full_name: 'Alex Rivera',
+        email: 'alex.rivera@stanford.edu',
+        phone_number: '+1 (555) 234-8891',
+        location: 'San Francisco, CA',
+        skills: ['React', 'Next.js', 'TypeScript', 'Tailwind CSS', 'Frontend', 'UI/UX'],
+        experience_level: 'Advanced',
+        bio: 'CS junior @ Stanford. 3x hackathon winner (Best UX @ TreeHacks). Seeking a strong backend / AI teammate for CalHacks to build real-time agentic workflows.',
+        avatar_url: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=400&q=80',
+        hackathons: [
+          { id: 'h-1', type: 'past', hackathon_name: 'TreeHacks 2025', location: 'Stanford, CA', date: 'Feb 2025' },
+          { id: 'h-2', type: 'upcoming', hackathon_name: 'CalHacks 11.0', location: 'San Francisco, CA', date: 'Nov 2026' }
+        ]
+      },
+      {
+        id: 'user-priya-2',
+        full_name: 'Priya Sharma',
+        email: 'priya.sharma@berkeley.edu',
+        phone_number: '+1 (555) 478-9021',
+        location: 'Berkeley, CA',
+        skills: ['Python', 'PyTorch', 'FastAPI', 'LLMs', 'AI/ML', 'LangChain', 'Backend'],
+        experience_level: 'Advanced',
+        bio: 'AI researcher & graduate student. Passionate about multi-modal agents and computer vision. Looking for full-stack developers to ship an impactful demo for CalHacks and HackMIT.',
+        avatar_url: 'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?auto=format&fit=crop&w=400&q=80',
+        hackathons: [
+          { id: 'h-3', type: 'past', hackathon_name: 'HackMIT 2025', location: 'Cambridge, MA', date: 'Sep 2025' },
+          { id: 'h-4', type: 'upcoming', hackathon_name: 'CalHacks 11.0', location: 'San Francisco, CA', date: 'Nov 2026' }
+        ]
+      },
+      {
+        id: 'user-marcus-3',
+        full_name: 'Marcus Chen',
+        email: 'mchen.code@gmail.com',
+        phone_number: '+1 (555) 912-3409',
+        location: 'Seattle, WA',
+        skills: ['Go', 'Rust', 'Docker', 'PostgreSQL', 'Distributed Systems', 'Backend'],
+        experience_level: 'Expert',
+        bio: 'Systems engineer & open-source contributor. Built high-throughput microservices. Eager to partner with innovative frontend and product hackers for upcoming hackathons.',
+        avatar_url: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=400&q=80',
+        hackathons: [
+          { id: 'h-5', type: 'upcoming', hackathon_name: 'ETHGlobal San Francisco', location: 'San Francisco, CA', date: 'Dec 2026' },
+          { id: 'h-6', type: 'past', hackathon_name: 'PennApps XXIV', location: 'Philadelphia, PA', date: 'Oct 2024' }
+        ]
+      },
+      {
+        id: 'user-elena-4',
+        full_name: 'Elena Rostova',
+        email: 'elena.design@mit.edu',
+        phone_number: '+1 (555) 304-1188',
+        location: 'Cambridge, MA',
+        skills: ['Figma', 'UI/UX', 'Product Design', 'Design Systems', 'Tailwind CSS', 'Frontend'],
+        experience_level: 'Intermediate',
+        bio: 'Design technologist who codes. I turn messy whiteboard ideas into jaw-dropping interfaces and high-fidelity clickable demos that win over judges.',
+        avatar_url: 'https://images.unsplash.com/photo-1517841905240-472988babdf9?auto=format&fit=crop&w=400&q=80',
+        hackathons: [
+          { id: 'h-7', type: 'upcoming', hackathon_name: 'HackMIT 2026', location: 'Cambridge, MA', date: 'Oct 2026' }
+        ]
+      },
+      {
+        id: 'user-devon-5',
+        full_name: 'Devon Patel',
+        email: 'devon.p@utexas.edu',
+        phone_number: '+1 (555) 762-5531',
+        location: 'Austin, TX',
+        skills: ['Flutter', 'React Native', 'Mobile', 'Firebase', 'GraphQL', 'Frontend'],
+        experience_level: 'Intermediate',
+        bio: 'Mobile dev enthusiast. Built 4 apps on the App Store. Seeking AI or backend hackers for HackUT and TreeHacks to build a mobile-first wellness companion.',
+        avatar_url: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&w=400&q=80',
+        hackathons: [
+          { id: 'h-8', type: 'upcoming', hackathon_name: 'TreeHacks 2026', location: 'Stanford, CA', date: 'Feb 2026' }
+        ]
+      },
+      {
+        id: 'user-sophia-6',
+        full_name: 'Sophia Wu',
+        email: 'sophia.wu@nyu.edu',
+        phone_number: '+1 (555) 662-9844',
+        location: 'New York, NY',
+        skills: ['Python', 'TensorFlow', 'Data Science', 'Data Viz', 'AI/ML', 'SQL'],
+        experience_level: 'Beginner',
+        bio: 'First-time hackathon attendee, super motivated! Strong background in statistics and data modeling. Looking for supportive teammates for HackNYU or Virtual Hackathons.',
+        avatar_url: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&w=400&q=80',
+        hackathons: [
+          { id: 'h-9', type: 'upcoming', hackathon_name: 'HackNYU 2026', location: 'New York, NY', date: 'Dec 2026' }
+        ]
+      }
+    ];
+
+    const INITIAL_MESSAGES = [
+      {
+        id: 'msg-1',
+        sender_id: 'user-priya-2',
+        receiver_id: 'user-alex-1',
+        message_content: "Hey Alex! Loved your past UI project at TreeHacks. Are you still seeking an AI/ML teammate for CalHacks 11.0?",
+        timestamp: new Date(Date.now() - 1000 * 60 * 90).toISOString(),
+        is_read: true
+      },
+      {
+        id: 'msg-2',
+        sender_id: 'user-alex-1',
+        receiver_id: 'user-priya-2',
+        message_content: "Hey Priya! Yes absolutely, that would be amazing! I saw your research on autonomous LLM agents. Let's build something epic.",
+        timestamp: new Date(Date.now() - 1000 * 60 * 75).toISOString(),
+        is_read: true
+      },
+      {
+        id: 'msg-3',
+        sender_id: 'user-priya-2',
+        receiver_id: 'user-alex-1',
+        message_content: "Awesome! I sent you a contact request so we can hop on Discord / phone call.",
+        timestamp: new Date(Date.now() - 1000 * 60 * 30).toISOString(),
+        is_read: true
+      }
+    ];
+
+    const INITIAL_CONTACT_REQUESTS = [
+      {
+        id: 'req-1',
+        requester_id: 'user-priya-2',
+        target_user_id: 'user-alex-1',
+        status: 'approved',
+        created_at: new Date(Date.now() - 1000 * 60 * 40).toISOString(),
+        updated_at: new Date(Date.now() - 1000 * 60 * 35).toISOString()
+      }
+    ];
+
+    // Local Storage Data Engine
+    function loadStorage(key, fallback) {
+      try {
+        const item = localStorage.getItem('teammatch_' + key);
+        return item ? JSON.parse(item) : fallback;
+      } catch (e) {
+        return fallback;
+      }
+    }
+    function saveStorage(key, val) {
+      try {
+        localStorage.setItem('teammatch_' + key, JSON.stringify(val));
+      } catch (e) {}
+    }
+
+    // --- Main TeamMatch Application ---
+    function TeamMatchApp() {
+      // Core DB state
+      const [users, setUsers] = useState(() => loadStorage('users', INITIAL_USERS));
+      const [messages, setMessages] = useState(() => loadStorage('messages', INITIAL_MESSAGES));
+      const [contactRequests, setContactRequests] = useState(() => loadStorage('contact_requests', INITIAL_CONTACT_REQUESTS));
+      const [currentUser, setCurrentUser] = useState(() => {
+        const savedId = loadStorage('current_user_id', 'user-alex-1');
+        return INITIAL_USERS.find(u => u.id === savedId) || INITIAL_USERS[0];
+      });
+
+      // Navigation & Modal Views
+      const [currentView, setCurrentView] = useState('discover'); // 'discover' | 'messages' | 'landing'
+      const [selectedUserModal, setSelectedUserModal] = useState(null);
+      const [activeChatTarget, setActiveChatTarget] = useState(null);
+      const [authModal, setAuthModal] = useState({ isOpen: false, tab: 'login' });
+      const [editProfileModalOpen, setEditProfileModalOpen] = useState(false);
+      const [notificationsModalOpen, setNotificationsModalOpen] = useState(false);
+      const [toast, setToast] = useState(null);
+
+      // Filters
+      const [searchQuery, setSearchQuery] = useState('');
+      const [selectedSkill, setSelectedSkill] = useState('All');
+      const [selectedExperience, setSelectedExperience] = useState('all');
+      const [locationFilter, setLocationFilter] = useState('');
+      const [hackathonFilter, setHackathonFilter] = useState('All');
+
+      // Demo dropdown
+      const [demoMenuOpen, setDemoMenuOpen] = useState(false);
+      const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+
+      // Persist changes
+      useEffect(() => { saveStorage('users', users); }, [users]);
+      useEffect(() => { saveStorage('messages', messages); }, [messages]);
+      useEffect(() => { saveStorage('contact_requests', contactRequests); }, [contactRequests]);
+      useEffect(() => {
+        if (currentUser) {
+          saveStorage('current_user_id', currentUser.id);
+        }
+      }, [currentUser]);
+
+      // Helper: Check if contact info is approved between userA and userB
+      const getContactStatus = (userAId, userBId) => {
+        if (!userAId || !userBId) return { status: 'none', canReveal: false, requestId: null, direction: 'none' };
+        if (userAId === userBId) return { status: 'self', canReveal: true, requestId: null, direction: 'none' };
+
+        const req = contactRequests.find(r =>
+          (r.requester_id === userAId && r.target_user_id === userBId) ||
+          (r.requester_id === userBId && r.target_user_id === userAId)
+        );
+
+        if (!req) return { status: 'none', canReveal: false, requestId: null, direction: 'none' };
+
+        return {
+          status: req.status, // 'pending' | 'approved' | 'denied'
+          canReveal: req.status === 'approved',
+          requestId: req.id,
+          direction: req.requester_id === userAId ? 'sent' : 'received'
+        };
+      };
+
+      // Helper: Sanitize user profile with Privacy Gate
+      const sanitizeUserForViewer = (targetUser, viewerId) => {
+        const statusInfo = getContactStatus(viewerId, targetUser.id);
+        const canSee = statusInfo.canReveal;
+
+        return {
+          ...targetUser,
+          email: canSee ? targetUser.email : null,
+          phone_number: canSee ? targetUser.phone_number : null,
+          contact_revealed: canSee,
+          contact_status: statusInfo.status,
+          contact_request_id: statusInfo.requestId,
+          contact_request_direction: statusInfo.direction
+        };
+      };
+
+      // Demo User Switching
+      const handleSwitchUser = (userId) => {
+        const found = users.find(u => u.id === userId);
+        if (found) {
+          setCurrentUser(found);
+          setDemoMenuOpen(false);
+          setMobileMenuOpen(false);
+          setToast({
+            title: `Logged in as ${found.full_name}`,
+            message: `${found.experience_level} • ${found.skills?.[0] || 'Hacker'}`
+          });
+        }
+      };
+
+      // Contact Request Actions
+      const handleRequestContact = (targetUserId) => {
+        if (!currentUser) {
+          setAuthModal({ isOpen: true, tab: 'login' });
+          return;
+        }
+        if (currentUser.id === targetUserId) return;
+
+        const target = users.find(u => u.id === targetUserId);
+        const existingIdx = contactRequests.findIndex(r =>
+          (r.requester_id === currentUser.id && r.target_user_id === targetUserId) ||
+          (r.requester_id === targetUserId && r.target_user_id === currentUser.id)
+        );
+
+        let newReq;
+        if (existingIdx !== -1) {
+          const updated = [...contactRequests];
+          updated[existingIdx].status = 'pending';
+          updated[existingIdx].requester_id = currentUser.id;
+          updated[existingIdx].target_user_id = targetUserId;
+          updated[existingIdx].updated_at = new Date().toISOString();
+          setContactRequests(updated);
+          newReq = updated[existingIdx];
+        } else {
+          newReq = {
+            id: 'req-' + Date.now(),
+            requester_id: currentUser.id,
+            target_user_id: targetUserId,
+            status: 'pending',
+            created_at: new Date().toISOString(),
+            updated_at: new Date().toISOString()
+          };
+          setContactRequests([...contactRequests, newReq]);
+        }
+
+        setToast({
+          title: "Contact Request Sent! ✉️",
+          message: `Waiting for ${target?.full_name || 'teammate'} to approve sharing email & phone.`
+        });
+      };
+
+      const handleRespondContact = (requestId, newStatus) => {
+        const req = contactRequests.find(r => r.id === requestId);
+        if (!req) return;
+
+        const updated = contactRequests.map(r =>
+          r.id === requestId ? { ...r, status: newStatus, updated_at: new Date().toISOString() } : r
+        );
+        setContactRequests(updated);
+
+        const otherUserId = req.requester_id === currentUser.id ? req.target_user_id : req.requester_id;
+        const otherUser = users.find(u => u.id === otherUserId);
+
+        setToast({
+          title: newStatus === 'approved' ? "Contact Request Approved! 🎉" : "Contact Request Declined",
+          message: newStatus === 'approved'
+            ? `You and ${otherUser?.full_name || 'Teammate'} can now see each other's phone & email!`
+            : "Request was declined."
+        });
+      };
+
+      // Send Message
+      const handleSendMessage = (receiverId, content) => {
+        if (!content || !content.trim() || !currentUser) return;
+        const newMsg = {
+          id: 'msg-' + Date.now(),
+          sender_id: currentUser.id,
+          receiver_id: receiverId,
+          message_content: content.trim(),
+          timestamp: new Date().toISOString(),
+          is_read: false
+        };
+        setMessages([...messages, newMsg]);
+      };
+
+      // Filtered Feed
+      const filteredUsers = users
+        .filter(u => !currentUser || u.id !== currentUser.id)
+        .filter(u => {
+          if (searchQuery.trim()) {
+            const q = searchQuery.toLowerCase();
+            const matchesName = u.full_name.toLowerCase().includes(q);
+            const matchesBio = u.bio?.toLowerCase().includes(q);
+            const matchesLoc = u.location.toLowerCase().includes(q);
+            const matchesSkill = u.skills?.some(s => s.toLowerCase().includes(q));
+            if (!matchesName && !matchesBio && !matchesLoc && !matchesSkill) return false;
+          }
+          if (selectedSkill !== 'All') {
+            const s = selectedSkill.toLowerCase();
+            if (!u.skills?.some(tag => tag.toLowerCase() === s || tag.toLowerCase().includes(s))) return false;
+          }
+          if (selectedExperience !== 'all') {
+            if (u.experience_level.toLowerCase() !== selectedExperience.toLowerCase()) return false;
+          }
+          if (locationFilter.trim()) {
+            if (!u.location.toLowerCase().includes(locationFilter.toLowerCase())) return false;
+          }
+          if (hackathonFilter !== 'All') {
+            const hName = hackathonFilter.toLowerCase();
+            const upcoming = u.hackathons?.filter(h => h.type === 'upcoming') || [];
+            if (!upcoming.some(h => h.hackathon_name.toLowerCase().includes(hName))) return false;
+          }
+          return true;
+        })
+        .map(u => sanitizeUserForViewer(u, currentUser?.id));
+
+      // Pending requests for current user
+      const pendingIncomingRequests = contactRequests
+        .filter(r => currentUser && r.target_user_id === currentUser.id && r.status === 'pending')
+        .map(r => {
+          const reqUser = users.find(u => u.id === r.requester_id);
+          return { ...r, requester: reqUser };
+        });
+
+      return (
+        <div className="min-h-screen flex flex-col">
+          
+          {/* Toast Notification */}
+          {toast && (
+            <div className="fixed top-20 right-4 z-50 max-w-sm w-full bg-slate-900 border border-indigo-500/40 rounded-2xl shadow-2xl p-4 animate-in slide-in-from-top-4 duration-200">
+              <div className="flex items-start justify-between">
+                <div className="flex items-start space-x-3">
+                  <div className="w-8 h-8 rounded-xl bg-indigo-500/20 text-indigo-400 flex items-center justify-center shrink-0">
+                    <Icon name="sparkles" className="w-4 h-4" />
+                  </div>
+                  <div>
+                    <h4 className="font-bold text-xs text-white">{toast.title}</h4>
+                    <p className="text-xs text-slate-300 mt-0.5">{toast.message}</p>
+                  </div>
+                </div>
+                <button onClick={() => setToast(null)} className="text-slate-500 hover:text-white">
+                  <Icon name="x" className="w-4 h-4" />
+                </button>
+              </div>
+            </div>
+          )}
+
+          {/* Top Navbar */}
+          <header className="sticky top-0 z-40 w-full border-b border-slate-800 bg-[#060913]/90 backdrop-blur-md">
+            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
+              
+              {/* Brand Logo */}
+              <div
+                className="flex items-center space-x-3 cursor-pointer"
+                onClick={() => setCurrentView('discover')}
+              >
+                <div className="h-10 w-10 rounded-xl bg-gradient-to-tr from-indigo-600 via-indigo-500 to-cyan-400 p-0.5 shadow-lg shadow-indigo-500/20 flex items-center justify-center">
+                  <div className="w-full h-full bg-slate-950 rounded-[10px] flex items-center justify-center">
+                    <Icon name="users" className="w-5 h-5 text-indigo-400" />
+                  </div>
+                </div>
+                <div>
+                  <div className="flex items-center space-x-1.5">
+                    <span className="font-extrabold text-lg text-white tracking-tight">Team<span className="text-transparent bg-clip-text bg-gradient-to-r from-indigo-400 to-cyan-400">Match</span></span>
+                    <span className="text-[10px] font-mono px-1.5 py-0.5 rounded bg-indigo-500/20 text-indigo-300 border border-indigo-500/30">HACKATHON</span>
+                  </div>
+                  <p className="text-[11px] text-slate-400 hidden sm:block">Find Complementary Teammates</p>
+                </div>
+              </div>
+
+              {/* Navigation Links */}
+              <nav className="hidden md:flex items-center space-x-1">
+                <button
+                  onClick={() => setCurrentView('discover')}
+                  className={`px-3.5 py-2 rounded-lg text-sm font-medium transition-colors flex items-center space-x-2 ${
+                    currentView === 'discover'
+                      ? 'bg-indigo-600/20 text-indigo-300 border border-indigo-500/30'
+                      : 'text-slate-300 hover:text-white hover:bg-slate-900'
+                  }`}
+                >
+                  <Icon name="users" className="w-4 h-4" />
+                  <span>Discover Teammates</span>
+                </button>
+
+                <button
+                  onClick={() => {
+                    if (!currentUser) setAuthModal({ isOpen: true, tab: 'login' });
+                    else setCurrentView('messages');
+                  }}
+                  className={`px-3.5 py-2 rounded-lg text-sm font-medium transition-colors flex items-center space-x-2 relative ${
+                    currentView === 'messages'
+                      ? 'bg-indigo-600/20 text-indigo-300 border border-indigo-500/30'
+                      : 'text-slate-300 hover:text-white hover:bg-slate-900'
+                  }`}
+                >
+                  <Icon name="message" className="w-4 h-4" />
+                  <span>Messages</span>
+                </button>
+
+                <button
+                  onClick={() => setCurrentView('landing')}
+                  className={`px-3.5 py-2 rounded-lg text-sm font-medium transition-colors ${
+                    currentView === 'landing' ? 'text-indigo-400' : 'text-slate-400 hover:text-slate-200'
+                  }`}
+                >
+                  About
+                </button>
+              </nav>
+
+              {/* Right Controls */}
+              <div className="flex items-center space-x-2 sm:space-x-3">
+                
+                {/* Fast Persona Switcher */}
+                <div className="relative">
+                  <button
+                    onClick={() => setDemoMenuOpen(!demoMenuOpen)}
+                    className="px-2.5 py-1.5 rounded-lg border border-indigo-500/30 bg-indigo-950/40 hover:bg-indigo-900/40 text-indigo-300 text-xs font-medium flex items-center space-x-1.5 transition-all shadow-sm"
+                    title="Switch user to test 2-way chat and contact approvals"
+                  >
+                    <Icon name="sparkles" className="w-3.5 h-3.5 text-indigo-400 animate-pulse" />
+                    <span className="hidden sm:inline">Switch Demo Persona</span>
+                    <span className="sm:hidden">Persona</span>
+                    <Icon name="chevronDown" className="w-3 h-3 text-indigo-400" />
+                  </button>
+
+                  {demoMenuOpen && (
+                    <div className="absolute right-0 mt-2 w-64 rounded-2xl bg-slate-900 border border-slate-700 shadow-2xl p-2 z-50 animate-in fade-in zoom-in-95 duration-100">
+                      <div className="px-2.5 py-1.5 border-b border-slate-800 text-[11px] font-semibold text-slate-400 uppercase tracking-wider">
+                        Select Persona to Test
+                      </div>
+                      <div className="space-y-1 mt-1 max-h-64 overflow-y-auto">
+                        {users.slice(0, 6).map(acc => (
+                          <button
+                            key={acc.id}
+                            onClick={() => handleSwitchUser(acc.id)}
+                            className={`w-full text-left px-2.5 py-2 rounded-xl text-xs flex items-center justify-between transition-colors ${
+                              currentUser?.id === acc.id
+                                ? 'bg-indigo-600/30 text-indigo-200 font-medium border border-indigo-500/30'
+                                : 'text-slate-300 hover:bg-slate-800 hover:text-white'
+                            }`}
+                          >
+                            <div>
+                              <div className="font-semibold">{acc.full_name}</div>
+                              <div className="text-[10px] text-slate-400 truncate">{acc.skills?.[0]} • {acc.location}</div>
+                            </div>
+                            {currentUser?.id === acc.id && (
+                              <span className="text-[10px] bg-indigo-500/20 text-indigo-300 px-1.5 py-0.5 rounded border border-indigo-500/30">Active</span>
+                            )}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                {/* Notifications Bell */}
+                {currentUser && (
+                  <button
+                    onClick={() => setNotificationsModalOpen(true)}
+                    className="relative p-2 rounded-lg text-slate-400 hover:text-white hover:bg-slate-900 border border-slate-800 transition-colors"
+                    title="Pending Contact Requests"
+                  >
+                    <Icon name="bell" className="w-4 h-4" />
+                    {pendingIncomingRequests.length > 0 && (
+                      <span className="absolute -top-1 -right-1 w-4 h-4 bg-emerald-500 text-slate-950 font-bold text-[10px] rounded-full flex items-center justify-center animate-bounce">
+                        {pendingIncomingRequests.length}
+                      </span>
+                    )}
+                  </button>
+                )}
+
+                {/* Profile Pill */}
+                {currentUser ? (
+                  <button
+                    onClick={() => setEditProfileModalOpen(true)}
+                    className="flex items-center space-x-2 p-1 pl-2 pr-3 rounded-xl border border-slate-800 hover:border-slate-700 bg-slate-900/60 transition-all text-left group"
+                  >
+                    <img
+                      src={currentUser.avatar_url || `https://api.dicebear.com/7.x/bottts/svg?seed=${currentUser.full_name}`}
+                      alt={currentUser.full_name}
+                      className="w-7 h-7 rounded-full bg-slate-800 object-cover border border-slate-700"
+                    />
+                    <div className="hidden lg:block text-xs">
+                      <p className="font-semibold text-slate-200 group-hover:text-white truncate max-w-[100px]">
+                        {currentUser.full_name}
+                      </p>
+                      <p className="text-[10px] text-slate-400">Edit Profile</p>
+                    </div>
+                  </button>
+                ) : (
+                  <button
+                    onClick={() => setAuthModal({ isOpen: true, tab: 'login' })}
+                    className="px-3.5 py-1.5 text-xs font-semibold rounded-lg bg-indigo-600 text-white hover:bg-indigo-500"
+                  >
+                    Sign In
+                  </button>
+                )}
+
+                {/* Mobile Hamburger */}
+                <button
+                  onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+                  className="md:hidden p-2 rounded-lg text-slate-400 hover:text-white hover:bg-slate-900"
+                >
+                  <Icon name="menu" className="w-5 h-5" />
+                </button>
+              </div>
+
+            </div>
+
+            {/* Mobile Menu */}
+            {mobileMenuOpen && (
+              <div className="md:hidden border-b border-slate-800 bg-[#060913] px-4 pt-2 pb-4 space-y-2">
+                <button
+                  onClick={() => { setCurrentView('discover'); setMobileMenuOpen(false); }}
+                  className="w-full text-left px-3 py-2 rounded-lg text-sm font-medium text-slate-200 hover:bg-slate-900 flex items-center space-x-2"
+                >
+                  <Icon name="users" className="w-4 h-4 text-indigo-400" />
+                  <span>Discover Teammates</span>
+                </button>
+                <button
+                  onClick={() => { setCurrentView('messages'); setMobileMenuOpen(false); }}
+                  className="w-full text-left px-3 py-2 rounded-lg text-sm font-medium text-slate-200 hover:bg-slate-900 flex items-center space-x-2"
+                >
+                  <Icon name="message" className="w-4 h-4 text-indigo-400" />
+                  <span>Messages</span>
+                </button>
+                <button
+                  onClick={() => { setCurrentView('landing'); setMobileMenuOpen(false); }}
+                  className="w-full text-left px-3 py-2 rounded-lg text-sm font-medium text-slate-200 hover:bg-slate-900"
+                >
+                  About TeamMatch
+                </button>
+                {currentUser && (
+                  <button
+                    onClick={() => { setEditProfileModalOpen(true); setMobileMenuOpen(false); }}
+                    className="w-full text-left px-3 py-2 rounded-lg text-sm font-medium text-indigo-400 hover:bg-slate-900 flex items-center space-x-2"
+                  >
+                    <Icon name="user" className="w-4 h-4" />
+                    <span>Edit Profile & Hackathons</span>
+                  </button>
+                )}
+              </div>
+            )}
+          </header>
+
+          {/* MAIN VIEW CONTROLLER */}
+          <main className="flex-1">
+            
+            {/* VIEW 1: LANDING PAGE */}
+            {currentView === 'landing' && (
+              <div className="relative overflow-hidden pt-8 pb-16 lg:py-20">
+                <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10 text-center">
+                  
+                  <div className="inline-flex items-center space-x-2 px-3.5 py-1.5 rounded-full border border-indigo-500/30 bg-indigo-500/10 text-xs font-medium text-indigo-300">
+                    <Icon name="sparkles" className="w-3.5 h-3.5 text-cyan-400" />
+                    <span>Built for Hackers, By Hackers</span>
+                    <span className="w-1 h-1 rounded-full bg-indigo-400"></span>
+                    <span className="text-cyan-400">Complementary Teammate Finder</span>
+                  </div>
+
+                  <h1 className="mt-6 text-4xl sm:text-5xl lg:text-6xl font-extrabold text-white tracking-tight leading-tight max-w-4xl mx-auto">
+                    Find the <span className="text-transparent bg-clip-text bg-gradient-to-r from-indigo-400 via-purple-300 to-cyan-400">Missing Half</span> of Your Hackathon Dream Team
+                  </h1>
+
+                  <p className="mt-5 text-base sm:text-lg text-slate-300 leading-relaxed max-w-2xl mx-auto">
+                    Students with game-changing ideas struggle to find teammates with complementary technical skills. 
+                    <strong className="text-white"> TeamMatch</strong> pairs developers, designers, and AI creators by skills, experience, and upcoming hackathons—with ironclad privacy gating.
+                  </p>
+
+                  <div className="mt-8 flex flex-col sm:flex-row items-center justify-center gap-3">
+                    <button
+                      onClick={() => setCurrentView('discover')}
+                      className="w-full sm:w-auto px-6 py-3.5 rounded-xl bg-gradient-to-r from-indigo-500 via-indigo-600 to-cyan-500 text-white font-semibold text-sm shadow-xl shadow-indigo-600/25 flex items-center justify-center space-x-2 transition-all hover:opacity-90"
+                    >
+                      <Icon name="users" className="w-4 h-4" />
+                      <span>Browse Available Hackers</span>
+                      <Icon name="arrowRight" className="w-4 h-4 ml-1" />
+                    </button>
+                    <button
+                      onClick={() => handleSwitchUser('user-priya-2')}
+                      className="w-full sm:w-auto px-6 py-3.5 rounded-xl border border-slate-700 bg-slate-900/80 text-slate-200 font-semibold text-sm flex items-center justify-center space-x-2 hover:bg-slate-800 transition-all"
+                    >
+                      <Icon name="zap" className="w-4 h-4 text-amber-400" />
+                      <span>Quick Demo Persona (Priya Sharma)</span>
+                    </button>
+                  </div>
+
+                  {/* Problem vs Solution */}
+                  <div className="mt-16 grid md:grid-cols-2 gap-6 max-w-5xl mx-auto text-left">
+                    <div className="p-6 rounded-2xl border border-rose-500/20 bg-rose-950/10 backdrop-blur-sm">
+                      <h3 className="font-bold text-base text-rose-300 mb-2">The Problem with Traditional Discord Channels</h3>
+                      <ul className="space-y-2.5 text-xs sm:text-sm text-slate-300">
+                        <li>• Unstructured spam in #team-formation channels where requests get lost in minutes.</li>
+                        <li>• Teams end up with 4 frontend devs and zero AI/backend engineers, or vice versa.</li>
+                        <li>• Hackers hesitate to post their personal phone numbers or emails publicly.</li>
+                      </ul>
+                    </div>
+                    <div className="p-6 rounded-2xl border border-emerald-500/20 bg-emerald-950/10 backdrop-blur-sm">
+                      <h3 className="font-bold text-base text-emerald-300 mb-2">The TeamMatch Solution</h3>
+                      <ul className="space-y-2.5 text-xs sm:text-sm text-slate-300">
+                        <li>• Filter by specific upcoming hackathon (CalHacks, TreeHacks, HackMIT, etc.).</li>
+                        <li>• Tag-based matching for complementary tech stacks (React + PyTorch + Go).</li>
+                        <li>• <strong>Strict Privacy Gate:</strong> Phone & email are completely hidden until mutually approved in chat.</li>
+                      </ul>
+                    </div>
+                  </div>
+
+                </div>
+              </div>
+            )}
+
+            {/* VIEW 2: DISCOVERY DASHBOARD */}
+            {currentView === 'discover' && (
+              <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+                
+                {/* Header Banner */}
+                <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 pb-6 border-b border-slate-800">
+                  <div>
+                    <div className="flex items-center space-x-2">
+                      <h1 className="text-2xl sm:text-3xl font-extrabold text-white tracking-tight">
+                        Teammate Discovery
+                      </h1>
+                      <span className="px-2.5 py-0.5 rounded-full text-xs font-semibold bg-indigo-500/10 text-indigo-400 border border-indigo-500/30">
+                        {filteredUsers.length} Hackers Available
+                      </span>
+                    </div>
+                    <p className="text-xs sm:text-sm text-slate-400 mt-1">
+                      Browse potential teammates with complementary skills, experience, and upcoming hackathons.
+                    </p>
+                  </div>
+
+                  {currentUser && (
+                    <button
+                      onClick={() => setEditProfileModalOpen(true)}
+                      className="px-4 py-2 rounded-xl bg-slate-900 hover:bg-slate-800 text-slate-200 border border-slate-700 text-xs font-medium flex items-center space-x-2 transition-colors self-start md:self-auto"
+                    >
+                      <Icon name="user" className="w-3.5 h-3.5 text-indigo-400" />
+                      <span>My Profile & Hackathons</span>
+                    </button>
+                  )}
+                </div>
+
+                {/* Filter Controls Bar */}
+                <div className="mt-6 p-4 sm:p-5 rounded-2xl bg-slate-900/60 border border-slate-800 backdrop-blur-sm space-y-4">
+                  <div className="grid grid-cols-1 md:grid-cols-12 gap-3">
+                    
+                    {/* Keyword Search */}
+                    <div className="md:col-span-5 relative">
+                      <Icon name="search" className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
+                      <input
+                        type="text"
+                        value={searchQuery}
+                        onChange={(e) => setSearchQuery(e.target.value)}
+                        placeholder="Search by name, skills, bio, tech stack..."
+                        className="w-full pl-10 pr-4 py-2.5 rounded-xl bg-slate-950/80 border border-slate-800 text-sm text-white placeholder-slate-500 focus:border-indigo-500 outline-none"
+                      />
+                    </div>
+
+                    {/* Proximity / City Filter */}
+                    <div className="md:col-span-3 relative">
+                      <Icon name="mapPin" className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
+                      <input
+                        type="text"
+                        value={locationFilter}
+                        onChange={(e) => setLocationFilter(e.target.value)}
+                        placeholder="Filter by city / proximity..."
+                        className="w-full pl-10 pr-4 py-2.5 rounded-xl bg-slate-950/80 border border-slate-800 text-sm text-white placeholder-slate-500 focus:border-indigo-500 outline-none"
+                      />
+                    </div>
+
+                    {/* Upcoming Hackathon Filter */}
+                    <div className="md:col-span-2">
+                      <select
+                        value={hackathonFilter}
+                        onChange={(e) => setHackathonFilter(e.target.value)}
+                        className="w-full py-2.5 px-3 rounded-xl bg-slate-950/80 border border-slate-800 text-sm text-slate-200 outline-none"
+                      >
+                        <option value="All">All Hackathons</option>
+                        <option value="CalHacks 11.0">CalHacks 11.0</option>
+                        <option value="TreeHacks 2026">TreeHacks 2026</option>
+                        <option value="HackMIT 2026">HackMIT 2026</option>
+                        <option value="ETHGlobal">ETHGlobal SF</option>
+                        <option value="HackNYU">HackNYU 2026</option>
+                      </select>
+                    </div>
+
+                    {/* Experience Filter */}
+                    <div className="md:col-span-2">
+                      <select
+                        value={selectedExperience}
+                        onChange={(e) => setSelectedExperience(e.target.value)}
+                        className="w-full py-2.5 px-3 rounded-xl bg-slate-950/80 border border-slate-800 text-sm text-slate-200 outline-none"
+                      >
+                        <option value="all">Any Experience</option>
+                        <option value="Beginner">Beginner</option>
+                        <option value="Intermediate">Intermediate</option>
+                        <option value="Advanced">Advanced</option>
+                        <option value="Expert">Expert</option>
+                      </select>
+                    </div>
+                  </div>
+
+                  {/* Quick Skills Pills */}
+                  <div className="flex flex-wrap items-center justify-between gap-2 pt-2 border-t border-slate-800/60">
+                    <div className="flex flex-wrap items-center gap-1.5">
+                      <span className="text-[11px] font-semibold text-slate-400 mr-1 flex items-center space-x-1">
+                        <Icon name="sparkles" className="w-3 h-3 text-indigo-400" />
+                        <span>Filter Skill:</span>
+                      </span>
+                      {['All', 'Frontend', 'React', 'Backend', 'Python', 'AI/ML', 'UI/UX', 'Mobile', 'Rust', 'Go'].map((skill) => (
+                        <button
+                          key={skill}
+                          onClick={() => setSelectedSkill(skill)}
+                          className={`text-xs px-2.5 py-1 rounded-lg font-mono transition-all ${
+                            selectedSkill === skill
+                              ? 'bg-indigo-600 text-white font-semibold shadow-sm'
+                              : 'bg-slate-950/70 text-slate-400 hover:text-white border border-slate-800'
+                          }`}
+                        >
+                          {skill}
+                        </button>
+                      ))}
+                    </div>
+
+                    {(searchQuery || selectedSkill !== 'All' || selectedExperience !== 'all' || locationFilter || hackathonFilter !== 'All') && (
+                      <button
+                        onClick={() => {
+                          setSearchQuery('');
+                          setSelectedSkill('All');
+                          setSelectedExperience('all');
+                          setLocationFilter('');
+                          setHackathonFilter('All');
+                        }}
+                        className="text-xs text-slate-400 hover:text-indigo-300 flex items-center space-x-1 px-2.5 py-1 rounded-lg hover:bg-slate-800 transition-colors"
+                      >
+                        <Icon name="rotateCcw" className="w-3 h-3" />
+                        <span>Reset Filters</span>
+                      </button>
+                    )}
+                  </div>
+                </div>
+
+                {/* Cards Grid */}
+                <div className="mt-8 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                  {filteredUsers.length === 0 ? (
+                    <div className="col-span-full text-center py-16 px-4 rounded-2xl border border-slate-800/60 bg-slate-900/30">
+                      <Icon name="users" className="w-12 h-12 text-slate-600 mx-auto mb-3" />
+                      <h3 className="text-lg font-bold text-white">No teammates found</h3>
+                      <p className="text-xs text-slate-400 mt-1">Try resetting or broadening your filters.</p>
+                    </div>
+                  ) : (
+                    filteredUsers.map((u) => {
+                      const upcomingHacks = u.hackathons?.filter(h => h.type === 'upcoming') || [];
+                      const pastHacks = u.hackathons?.filter(h => h.type === 'past') || [];
+
+                      return (
+                        <div
+                          key={u.id}
+                          className="bg-slate-900/70 border border-slate-800 hover:border-slate-700/80 rounded-2xl p-5 flex flex-col justify-between transition-all duration-200 glow-card"
+                        >
+                          <div>
+                            {/* Header */}
+                            <div className="flex items-start justify-between gap-3">
+                              <div className="flex items-center space-x-3">
+                                <div className="relative">
+                                  <img
+                                    src={u.avatar_url || `https://api.dicebear.com/7.x/bottts/svg?seed=${u.full_name}`}
+                                    alt={u.full_name}
+                                    className="w-12 h-12 rounded-full object-cover bg-slate-800 border-2 border-indigo-500/20"
+                                  />
+                                  <span className="absolute bottom-0 right-0 w-3 h-3 rounded-full bg-emerald-500 border-2 border-slate-900"></span>
+                                </div>
+                                <div>
+                                  <h3 className="font-bold text-white text-base hover:text-indigo-300 transition-colors">
+                                    {u.full_name}
+                                  </h3>
+                                  <div className="flex items-center text-xs text-slate-400 space-x-1 mt-0.5">
+                                    <Icon name="mapPin" className="w-3.5 h-3.5 text-slate-500 shrink-0" />
+                                    <span>{u.location}</span>
+                                  </div>
+                                </div>
+                              </div>
+
+                              <span className="text-[11px] font-semibold px-2.5 py-0.5 rounded-full border bg-indigo-500/10 text-indigo-300 border-indigo-500/30">
+                                {u.experience_level}
+                              </span>
+                            </div>
+
+                            {/* Bio */}
+                            {u.bio && (
+                              <p className="mt-3 text-xs text-slate-300 line-clamp-2 leading-relaxed">
+                                {u.bio}
+                              </p>
+                            )}
+
+                            {/* Skills Tags */}
+                            <div className="mt-3.5">
+                              <div className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider mb-1.5 flex justify-between">
+                                <span>Skills</span>
+                                <span className="text-[10px] text-slate-500">{u.skills?.length || 0} tags</span>
+                              </div>
+                              <div className="flex flex-wrap gap-1.5">
+                                {u.skills?.map((s, idx) => (
+                                  <button
+                                    key={idx}
+                                    onClick={() => setSelectedSkill(s)}
+                                    className="text-xs px-2.5 py-1 rounded-md bg-slate-800 hover:bg-indigo-600/20 hover:text-indigo-300 text-slate-300 border border-slate-700/60 font-mono transition-colors"
+                                  >
+                                    {s}
+                                  </button>
+                                ))}
+                              </div>
+                            </div>
+
+                            {/* Hackathons */}
+                            <div className="mt-4 pt-3.5 border-t border-slate-800/80 space-y-2">
+                              {upcomingHacks.length > 0 && (
+                                <div>
+                                  <span className="text-[11px] font-bold text-indigo-400 uppercase tracking-wider flex items-center space-x-1 mb-1">
+                                    <Icon name="calendar" className="w-3 h-3" />
+                                    <span>Upcoming Hackathon</span>
+                                  </span>
+                                  <div className="flex flex-wrap gap-1.5">
+                                    {upcomingHacks.map((h, i) => (
+                                      <span key={i} className="text-xs px-2 py-0.5 rounded bg-indigo-500/10 text-indigo-200 border border-indigo-500/20">
+                                        {h.hackathon_name} <span className="text-[10px] text-indigo-400">({h.location})</span>
+                                      </span>
+                                    ))}
+                                  </div>
+                                </div>
+                              )}
+
+                              {pastHacks.length > 0 && (
+                                <div>
+                                  <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider flex items-center space-x-1 mb-1">
+                                    <Icon name="award" className="w-3 h-3 text-amber-400" />
+                                    <span>Past Hackathon</span>
+                                  </span>
+                                  <div className="flex flex-wrap gap-1.5">
+                                    {pastHacks.map((h, i) => (
+                                      <span key={i} className="text-xs px-2 py-0.5 rounded bg-slate-800 text-slate-400 border border-slate-700/60">
+                                        {h.hackathon_name}
+                                      </span>
+                                    ))}
+                                  </div>
+                                </div>
+                              )}
+                            </div>
+                          </div>
+
+                          {/* Privacy Gate Display: Strictly locked unless approved */}
+                          <div className="mt-5 pt-3.5 border-t border-slate-800/80 space-y-3">
+                            {u.contact_revealed ? (
+                              <div className="p-2.5 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-xs">
+                                <div className="flex items-center space-x-1.5 text-emerald-400 font-semibold mb-1">
+                                  <Icon name="unlock" className="w-3.5 h-3.5" />
+                                  <span>Contact Unlocked</span>
+                                </div>
+                                <div className="space-y-0.5 text-slate-300 font-mono text-[11px]">
+                                  {u.email && <div className="flex items-center space-x-1.5"><Icon name="mail" className="w-3 h-3 text-emerald-400" /><span>{u.email}</span></div>}
+                                  {u.phone_number && <div className="flex items-center space-x-1.5"><Icon name="phone" className="w-3 h-3 text-emerald-400" /><span>{u.phone_number}</span></div>}
+                                </div>
+                              </div>
+                            ) : (
+                              <div className="flex items-center justify-between px-2.5 py-1.5 rounded-lg bg-slate-950/60 border border-slate-800/80 text-xs text-slate-400">
+                                <div className="flex items-center space-x-1.5">
+                                  <Icon name="lock" className="w-3.5 h-3.5 text-amber-400/80" />
+                                  <span className="text-[11px]">Phone & Email Protected</span>
+                                </div>
+                                <span className="text-[10px] text-slate-500">Request in chat</span>
+                              </div>
+                            )}
+
+                            {/* Actions */}
+                            <div className="flex items-center space-x-2">
+                              <button
+                                onClick={() => {
+                                  setActiveChatTarget(u);
+                                  setCurrentView('messages');
+                                }}
+                                className="flex-1 py-2 px-3 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-semibold text-xs flex items-center justify-center space-x-1.5 shadow-md shadow-indigo-600/20 transition-colors"
+                              >
+                                <Icon name="message" className="w-3.5 h-3.5" />
+                                <span>Send Message</span>
+                              </button>
+                              <button
+                                onClick={() => setSelectedUserModal(u)}
+                                className="py-2 px-3 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-medium border border-slate-700/60"
+                              >
+                                Profile
+                              </button>
+                            </div>
+                          </div>
+
+                        </div>
+                      );
+                    })
+                  )}
+                </div>
+
+              </div>
+            )}
+
+            {/* VIEW 3: IN-APP MESSAGING & PRIVACY REVEAL INTERFACE */}
+            {currentView === 'messages' && (
+              <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 h-[calc(100vh-5rem)] flex flex-col">
+                <div className="flex-1 bg-slate-900/90 border border-slate-800 rounded-2xl overflow-hidden shadow-2xl flex flex-col md:flex-row">
+                  
+                  {/* Left Sidebar Conversations */}
+                  <div className="w-full md:w-80 lg:w-96 border-r border-slate-800 flex flex-col bg-slate-950/70">
+                    <div className="p-4 border-b border-slate-800 flex items-center justify-between">
+                      <h2 className="font-bold text-white text-base">In-App Chat</h2>
+                      <button
+                        onClick={() => setCurrentView('discover')}
+                        className="text-xs text-indigo-400 hover:text-indigo-300 font-medium"
+                      >
+                        + Find Hackers
+                      </button>
+                    </div>
+
+                    <div className="flex-1 overflow-y-auto divide-y divide-slate-800/60">
+                      {users.filter(u => u.id !== currentUser?.id).map((partner) => {
+                        const partnerMsgs = messages.filter(m =>
+                          (m.sender_id === currentUser?.id && m.receiver_id === partner.id) ||
+                          (m.sender_id === partner.id && m.receiver_id === currentUser?.id)
+                        );
+                        const lastMsg = partnerMsgs[partnerMsgs.length - 1];
+                        const isSelected = activeChatTarget?.id === partner.id;
+                        const contactInfo = getContactStatus(currentUser?.id, partner.id);
+
+                        return (
+                          <button
+                            key={partner.id}
+                            onClick={() => setActiveChatTarget(partner)}
+                            className={`w-full text-left p-3.5 flex items-center space-x-3 transition-colors ${
+                              isSelected
+                                ? 'bg-indigo-600/15 border-l-4 border-indigo-500'
+                                : 'hover:bg-slate-900/80'
+                            }`}
+                          >
+                            <div className="relative">
+                              <img
+                                src={partner.avatar_url || `https://api.dicebear.com/7.x/bottts/svg?seed=${partner.full_name}`}
+                                alt={partner.full_name}
+                                className="w-10 h-10 rounded-full object-cover bg-slate-800 border border-slate-700"
+                              />
+                              {contactInfo.canReveal && (
+                                <span className="absolute -bottom-0.5 -right-0.5 w-3.5 h-3.5 rounded-full bg-emerald-500 border border-slate-900 flex items-center justify-center text-[8px] text-slate-950 font-bold" title="Contact Unlocked">
+                                  ✓
+                                </span>
+                              )}
+                            </div>
+
+                            <div className="flex-1 min-w-0">
+                              <div className="flex items-center justify-between">
+                                <span className="font-semibold text-xs text-white truncate">
+                                  {partner.full_name}
+                                </span>
+                                {lastMsg && (
+                                  <span className="text-[10px] text-slate-500">
+                                    {new Date(lastMsg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                                  </span>
+                                )}
+                              </div>
+                              <p className="text-[11px] text-slate-400 truncate mt-0.5">
+                                {lastMsg ? lastMsg.message_content : `${partner.experience_level} • ${partner.skills?.[0] || 'Hacker'}`}
+                              </p>
+                            </div>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+
+                  {/* Right Main Chat Pane */}
+                  {activeChatTarget ? (
+                    <div className="flex-1 flex flex-col bg-slate-950/40">
+                      
+                      {/* Chat Header */}
+                      {(() => {
+                        const targetSanitized = sanitizeUserForViewer(activeChatTarget, currentUser?.id);
+                        const contactInfo = getContactStatus(currentUser?.id, activeChatTarget.id);
+
+                        return (
+                          <>
+                            <div className="p-3.5 sm:p-4 border-b border-slate-800 bg-slate-900/60 backdrop-blur-sm flex items-center justify-between gap-3">
+                              <div className="flex items-center space-x-3">
+                                <div className="relative">
+                                  <img
+                                    src={activeChatTarget.avatar_url || `https://api.dicebear.com/7.x/bottts/svg?seed=${activeChatTarget.full_name}`}
+                                    alt={activeChatTarget.full_name}
+                                    className="w-10 h-10 rounded-full object-cover bg-slate-800 border border-slate-700"
+                                  />
+                                  <span className="absolute bottom-0 right-0 w-2.5 h-2.5 rounded-full bg-emerald-500 border border-slate-900"></span>
+                                </div>
+                                <div>
+                                  <div className="flex items-center space-x-2">
+                                    <h3 className="font-bold text-sm sm:text-base text-white">
+                                      {activeChatTarget.full_name}
+                                    </h3>
+                                    <span className="text-[10px] px-2 py-0.5 rounded-full bg-indigo-500/10 text-indigo-300 border border-indigo-500/30">
+                                      {activeChatTarget.experience_level}
+                                    </span>
+                                  </div>
+                                  <div className="flex items-center text-[11px] text-slate-400 space-x-2 mt-0.5">
+                                    <Icon name="mapPin" className="w-3 h-3 text-slate-500" />
+                                    <span>{activeChatTarget.location}</span>
+                                    <span className="text-slate-500">• {activeChatTarget.skills?.slice(0, 3).join(', ')}</span>
+                                  </div>
+                                </div>
+                              </div>
+
+                              {/* Privacy & Contact Reveal Button/Badge */}
+                              <div>
+                                {contactInfo.canReveal ? (
+                                  <div className="flex items-center space-x-1.5 px-3 py-1.5 rounded-xl bg-emerald-500/15 border border-emerald-500/30 text-emerald-400 text-xs font-semibold">
+                                    <Icon name="unlock" className="w-3.5 h-3.5" />
+                                    <span className="hidden sm:inline">Contact Unlocked</span>
+                                  </div>
+                                ) : contactInfo.status === 'pending' ? (
+                                  contactInfo.direction === 'sent' ? (
+                                    <div className="flex items-center space-x-1.5 px-3 py-1.5 rounded-xl bg-amber-500/15 border border-amber-500/30 text-amber-300 text-xs font-medium">
+                                      <span>Request Pending...</span>
+                                    </div>
+                                  ) : (
+                                    <div className="flex items-center space-x-1">
+                                      <button
+                                        onClick={() => handleRespondContact(contactInfo.requestId, 'approved')}
+                                        className="px-2.5 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white font-semibold text-xs"
+                                      >
+                                        Approve Contact
+                                      </button>
+                                      <button
+                                        onClick={() => handleRespondContact(contactInfo.requestId, 'denied')}
+                                        className="px-2 py-1.5 rounded-lg bg-slate-800 text-slate-300 text-xs"
+                                      >
+                                        Decline
+                                      </button>
+                                    </div>
+                                  )
+                                ) : (
+                                  <button
+                                    onClick={() => handleRequestContact(activeChatTarget.id)}
+                                    className="px-3 py-1.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-semibold text-xs shadow-md shadow-indigo-600/20 flex items-center space-x-1.5 transition-all"
+                                  >
+                                    <Icon name="lock" className="w-3.5 h-3.5" />
+                                    <span>Request Contact Info</span>
+                                  </button>
+                                )}
+                              </div>
+                            </div>
+
+                            {/* Contact Revealed Banner OR Prompt */}
+                            {contactInfo.canReveal ? (
+                              <div className="px-4 py-2.5 bg-emerald-950/40 border-b border-emerald-500/20 flex flex-wrap items-center justify-between gap-3 text-xs">
+                                <div className="flex items-center space-x-2 text-emerald-300">
+                                  <Icon name="checkCircle" className="w-4 h-4 text-emerald-400 shrink-0" />
+                                  <span className="font-semibold">Privacy Gate Unlocked: Both teammates approved contact exchange.</span>
+                                </div>
+                                <div className="flex items-center space-x-3 text-slate-200">
+                                  {targetSanitized.email && (
+                                    <span className="flex items-center space-x-1 bg-slate-900 px-2 py-1 rounded-lg border border-slate-700 font-mono text-[11px]">
+                                      <Icon name="mail" className="w-3 h-3 text-indigo-400" />
+                                      <span>{targetSanitized.email}</span>
+                                    </span>
+                                  )}
+                                  {targetSanitized.phone_number && (
+                                    <span className="flex items-center space-x-1 bg-slate-900 px-2 py-1 rounded-lg border border-slate-700 font-mono text-[11px]">
+                                      <Icon name="phone" className="w-3 h-3 text-emerald-400" />
+                                      <span>{targetSanitized.phone_number}</span>
+                                    </span>
+                                  )}
+                                </div>
+                              </div>
+                            ) : contactInfo.status === 'pending' && contactInfo.direction === 'received' ? (
+                              <div className="px-4 py-3 bg-indigo-950/50 border-b border-indigo-500/30 flex items-center justify-between text-xs">
+                                <div className="flex items-center space-x-2 text-indigo-200">
+                                  <Icon name="shield" className="w-4 h-4 text-indigo-400 shrink-0" />
+                                  <span>
+                                    <strong className="text-white">{activeChatTarget.full_name}</strong> requested your contact info to coordinate outside TeamMatch.
+                                  </span>
+                                </div>
+                                <div className="flex items-center space-x-2">
+                                  <button
+                                    onClick={() => handleRespondContact(contactInfo.requestId, 'approved')}
+                                    className="px-3 py-1 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white font-semibold text-xs"
+                                  >
+                                    Approve
+                                  </button>
+                                  <button
+                                    onClick={() => handleRespondContact(contactInfo.requestId, 'denied')}
+                                    className="px-2.5 py-1 rounded-lg bg-slate-800 text-slate-300 text-xs"
+                                  >
+                                    Decline
+                                  </button>
+                                </div>
+                              </div>
+                            ) : null}
+                          </>
+                        );
+                      })()}
+
+                      {/* Chat Messages Body */}
+                      <div className="flex-1 p-4 overflow-y-auto space-y-3">
+                        {(() => {
+                          const thread = messages.filter(m =>
+                            (m.sender_id === currentUser?.id && m.receiver_id === activeChatTarget.id) ||
+                            (m.sender_id === activeChatTarget.id && m.receiver_id === currentUser?.id)
+                          );
+
+                          if (thread.length === 0) {
+                            return (
+                              <div className="text-center py-12 max-w-sm mx-auto">
+                                <Icon name="sparkles" className="w-8 h-8 text-indigo-400 mx-auto mb-2" />
+                                <h4 className="font-bold text-sm text-white">Start the conversation!</h4>
+                                <p className="text-xs text-slate-400 mt-1">
+                                  Pitch your hackathon project ideas, ask what tracks they are targeting, or discuss stacks.
+                                </p>
+                              </div>
+                            );
+                          }
+
+                          return thread.map((m) => {
+                            const isMe = m.sender_id === currentUser?.id;
+                            return (
+                              <div key={m.id} className={`flex flex-col ${isMe ? 'items-end' : 'items-start'}`}>
+                                <div
+                                  className={`max-w-[80%] sm:max-w-md px-3.5 py-2.5 rounded-2xl text-xs sm:text-sm leading-relaxed ${
+                                    isMe
+                                      ? 'bg-gradient-to-r from-indigo-600 to-indigo-700 text-white rounded-br-none'
+                                      : 'bg-slate-800/90 text-slate-100 rounded-bl-none border border-slate-700/60'
+                                  }`}
+                                >
+                                  {m.message_content}
+                                </div>
+                                <span className="text-[10px] text-slate-500 mt-1 px-1">
+                                  {new Date(m.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                                </span>
+                              </div>
+                            );
+                          });
+                        })()}
+                      </div>
+
+                      {/* Icebreaker Prompts */}
+                      <div className="px-4 py-2 border-t border-slate-800/60 bg-slate-900/30 flex items-center space-x-2 overflow-x-auto">
+                        <span className="text-[10px] font-semibold text-slate-500 shrink-0">Prompts:</span>
+                        {[
+                          "Looking for a teammate for CalHacks?",
+                          "Loved your past projects! Let's team up for AI track.",
+                          "What tech stack are you planning to use?",
+                          "Are you free for a 10-minute sync?"
+                        ].map((prompt, i) => (
+                          <button
+                            key={i}
+                            onClick={() => handleSendMessage(activeChatTarget.id, prompt)}
+                            className="shrink-0 text-[11px] px-2.5 py-1 rounded-full bg-slate-800 text-slate-300 hover:text-indigo-300 hover:bg-slate-700 transition-colors"
+                          >
+                            {prompt}
+                          </button>
+                        ))}
+                      </div>
+
+                      {/* Chat Input */}
+                      <ChatInputBar
+                        onSend={(text) => handleSendMessage(activeChatTarget.id, text)}
+                        partnerName={activeChatTarget.full_name}
+                      />
+                    </div>
+                  ) : (
+                    <div className="flex-1 flex flex-col items-center justify-center p-8 text-center bg-slate-950/30">
+                      <Icon name="lock" className="w-10 h-10 text-indigo-400 mb-3" />
+                      <h3 className="font-bold text-lg text-white">Select a Hacker to Chat</h3>
+                      <p className="text-xs text-slate-400 max-w-sm mt-1">
+                        Choose an existing conversation on the left or discover teammates in the feed.
+                      </p>
+                    </div>
+                  )}
+
+                </div>
+              </div>
+            )}
+
+          </main>
+
+          {/* Footer */}
+          <footer className="border-t border-slate-900 bg-[#060913] py-6 text-center text-xs text-slate-500">
+            <div className="max-w-7xl mx-auto px-4 flex flex-col sm:flex-row items-center justify-between gap-3">
+              <div className="flex items-center space-x-2">
+                <span className="font-bold text-slate-300">TeamMatch</span>
+                <span>• Hackathon Teammate Finder</span>
+              </div>
+              <div className="flex items-center space-x-4 text-slate-400">
+                <span className="flex items-center space-x-1">
+                  <Icon name="shieldCheck" className="w-3.5 h-3.5 text-indigo-400" />
+                  <span>Strict Privacy Gating Enforced</span>
+                </span>
+                <span>•</span>
+                <span>Self-Contained Standalone App</span>
+              </div>
+            </div>
+          </footer>
+
+          {/* MODALS */}
+
+          {/* 1. User Profile Modal */}
+          {selectedUserModal && (
+            <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-sm animate-in fade-in">
+              <div className="w-full max-w-lg bg-slate-900 border border-slate-800 rounded-3xl shadow-2xl overflow-hidden flex flex-col max-h-[90vh]">
+                <div className="h-24 bg-gradient-to-r from-indigo-900 via-purple-900 to-slate-900 p-4 flex items-start justify-between">
+                  <span className="text-xs font-semibold px-2.5 py-1 rounded-full bg-slate-950/50 text-white">Hackathon Profile</span>
+                  <button onClick={() => setSelectedUserModal(null)} className="p-1 rounded-full bg-slate-950/60 text-slate-300 hover:text-white">
+                    <Icon name="x" className="w-4 h-4" />
+                  </button>
+                </div>
+
+                <div className="px-6 pb-6 pt-0 flex-1 overflow-y-auto">
+                  <div className="flex items-end justify-between -mt-10 mb-4">
+                    <img
+                      src={selectedUserModal.avatar_url || `https://api.dicebear.com/7.x/bottts/svg?seed=${selectedUserModal.full_name}`}
+                      alt={selectedUserModal.full_name}
+                      className="w-20 h-20 rounded-2xl object-cover bg-slate-800 border-4 border-slate-900 shadow-xl"
+                    />
+                    <button
+                      onClick={() => {
+                        setActiveChatTarget(selectedUserModal);
+                        setSelectedUserModal(null);
+                        setCurrentView('messages');
+                      }}
+                      className="px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-semibold flex items-center space-x-1.5"
+                    >
+                      <Icon name="message" className="w-3.5 h-3.5" />
+                      <span>Send Message</span>
+                    </button>
+                  </div>
+
+                  <h2 className="text-xl font-bold text-white">{selectedUserModal.full_name}</h2>
+                  <div className="flex items-center text-xs text-slate-400 space-x-2 mt-1">
+                    <Icon name="mapPin" className="w-3.5 h-3.5 text-slate-500" />
+                    <span>{selectedUserModal.location}</span>
+                    <span>•</span>
+                    <span className="text-indigo-400">{selectedUserModal.experience_level}</span>
+                  </div>
+
+                  {selectedUserModal.bio && (
+                    <p className="mt-3 text-xs text-slate-300 p-3 rounded-xl bg-slate-950 border border-slate-800 leading-relaxed">
+                      {selectedUserModal.bio}
+                    </p>
+                  )}
+
+                  {/* Privacy Box */}
+                  <div className="mt-4 p-3.5 rounded-xl border border-slate-800 bg-slate-950/60 text-xs">
+                    <div className="flex items-center justify-between font-semibold mb-1">
+                      <span className="text-slate-300 flex items-center space-x-1.5">
+                        <Icon name="shieldCheck" className="w-4 h-4 text-indigo-400" />
+                        <span>Contact Privacy Status</span>
+                      </span>
+                      {selectedUserModal.contact_revealed ? (
+                        <span className="text-emerald-400 flex items-center space-x-1"><Icon name="unlock" className="w-3 h-3" /><span>Approved</span></span>
+                      ) : (
+                        <span className="text-amber-400 flex items-center space-x-1"><Icon name="lock" className="w-3 h-3" /><span>Locked</span></span>
+                      )}
+                    </div>
+                    {selectedUserModal.contact_revealed ? (
+                      <div className="space-y-1 mt-2 font-mono text-[11px] text-slate-300">
+                        {selectedUserModal.email && <div>Email: {selectedUserModal.email}</div>}
+                        {selectedUserModal.phone_number && <div>Phone: {selectedUserModal.phone_number}</div>}
+                      </div>
+                    ) : (
+                      <p className="text-[11px] text-slate-400 mt-1">
+                        Phone & email are hidden. Send a message to request contact info!
+                      </p>
+                    )}
+                  </div>
+
+                  {/* Skills */}
+                  <div className="mt-4">
+                    <h4 className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">Technical Skills</h4>
+                    <div className="flex flex-wrap gap-1.5">
+                      {selectedUserModal.skills?.map((s, i) => (
+                        <span key={i} className="text-xs px-2.5 py-1 rounded-lg bg-slate-800 text-slate-200 border border-slate-700/60 font-mono">
+                          {s}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Upcoming Hackathons */}
+                  <div className="mt-4">
+                    <h4 className="text-xs font-bold text-indigo-400 uppercase tracking-wider mb-2">Upcoming Hackathons</h4>
+                    {selectedUserModal.hackathons?.filter(h => h.type === 'upcoming').map((h, i) => (
+                      <div key={i} className="p-2.5 rounded-lg bg-indigo-950/20 border border-indigo-500/20 text-xs flex justify-between mb-1.5">
+                        <span className="font-semibold text-white">{h.hackathon_name}</span>
+                        <span className="text-slate-400">{h.location}</span>
+                      </div>
+                    ))}
+                  </div>
+
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* 2. Onboarding & Edit Profile Modal (Dynamic Hackathons Manager) */}
+          {editProfileModalOpen && (
+            <EditProfileModalContent
+              user={currentUser}
+              onClose={() => setEditProfileModalOpen(false)}
+              onSave={(updatedUser) => {
+                const updatedList = users.map(u => u.id === updatedUser.id ? updatedUser : u);
+                setUsers(updatedList);
+                setCurrentUser(updatedUser);
+                setEditProfileModalOpen(false);
+                setToast({ title: "Profile Updated!", message: "Your skills and hackathons are now up to date." });
+              }}
+            />
+          )}
+
+          {/* 3. Notifications Modal (Pending Contact Requests) */}
+          {notificationsModalOpen && (
+            <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-sm animate-in fade-in">
+              <div className="w-full max-w-md bg-slate-900 border border-slate-800 rounded-3xl shadow-2xl overflow-hidden flex flex-col max-h-[85vh]">
+                <div className="p-4 border-b border-slate-800 flex items-center justify-between">
+                  <div className="flex items-center space-x-2">
+                    <Icon name="bell" className="w-4 h-4 text-indigo-400" />
+                    <h3 className="font-bold text-sm text-white">Pending Contact Requests</h3>
+                  </div>
+                  <button onClick={() => setNotificationsModalOpen(false)} className="text-slate-400 hover:text-white">
+                    <Icon name="x" className="w-4 h-4" />
+                  </button>
+                </div>
+
+                <div className="p-4 overflow-y-auto space-y-3">
+                  {pendingIncomingRequests.length === 0 ? (
+                    <div className="text-center py-8 text-xs text-slate-400">
+                      No pending contact requests at the moment.
+                    </div>
+                  ) : (
+                    pendingIncomingRequests.map(req => {
+                      const reqUser = req.requester;
+                      if (!reqUser) return null;
+                      return (
+                        <div key={req.id} className="p-3 rounded-2xl bg-slate-950 border border-slate-800 flex items-center justify-between">
+                          <div className="flex items-center space-x-2.5">
+                            <img src={reqUser.avatar_url} className="w-9 h-9 rounded-full bg-slate-800" />
+                            <div>
+                              <h4 className="font-bold text-xs text-white">{reqUser.full_name}</h4>
+                              <p className="text-[10px] text-slate-400">{reqUser.experience_level} • {reqUser.location}</p>
+                            </div>
+                          </div>
+                          <div className="flex items-center space-x-1.5">
+                            <button
+                              onClick={() => {
+                                handleRespondContact(req.id, 'approved');
+                                setNotificationsModalOpen(false);
+                              }}
+                              className="px-2.5 py-1 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white font-semibold text-xs"
+                            >
+                              Approve
+                            </button>
+                            <button
+                              onClick={() => handleRespondContact(req.id, 'denied')}
+                              className="px-2 py-1 rounded-lg bg-slate-800 text-slate-300 text-xs"
+                            >
+                              Decline
+                            </button>
+                          </div>
+                        </div>
+                      );
+                    })
+                  )}
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* 4. Auth Modal */}
+          {authModal.isOpen && (
+            <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-sm animate-in fade-in">
+              <div className="w-full max-w-md bg-slate-900 border border-slate-800 rounded-3xl shadow-2xl p-5">
+                <div className="flex justify-between items-center mb-4">
+                  <h3 className="font-bold text-base text-white">
+                    {authModal.tab === 'login' ? 'Sign In to TeamMatch' : 'Create Student Account'}
+                  </h3>
+                  <button onClick={() => setAuthModal({ isOpen: false, tab: 'login' })} className="text-slate-400 hover:text-white">
+                    <Icon name="x" className="w-4 h-4" />
+                  </button>
+                </div>
+
+                <div className="grid grid-cols-2 p-1 mb-4 bg-slate-950 rounded-xl border border-slate-800">
+                  <button
+                    onClick={() => setAuthModal({ ...authModal, tab: 'login' })}
+                    className={`py-1.5 text-xs font-semibold rounded-lg ${authModal.tab === 'login' ? 'bg-indigo-600 text-white' : 'text-slate-400'}`}
+                  >
+                    Sign In
+                  </button>
+                  <button
+                    onClick={() => setAuthModal({ ...authModal, tab: 'register' })}
+                    className={`py-1.5 text-xs font-semibold rounded-lg ${authModal.tab === 'register' ? 'bg-indigo-600 text-white' : 'text-slate-400'}`}
+                  >
+                    Create Account
+                  </button>
+                </div>
+
+                {/* Quick Persona Buttons */}
+                <div className="mb-4">
+                  <p className="text-[10px] uppercase font-bold text-slate-500 mb-1.5">Fast Test Login:</p>
+                  <div className="grid grid-cols-2 gap-1.5">
+                    {users.slice(0, 4).map(u => (
+                      <button
+                        key={u.id}
+                        type="button"
+                        onClick={() => {
+                          handleSwitchUser(u.id);
+                          setAuthModal({ isOpen: false, tab: 'login' });
+                        }}
+                        className="p-2 rounded-xl bg-slate-950 border border-slate-800 hover:border-indigo-500 text-left text-xs"
+                      >
+                        <div className="font-semibold text-slate-200 truncate">{u.full_name}</div>
+                        <div className="text-[10px] text-slate-400 truncate">{u.skills?.[0]}</div>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Registration form */}
+                {authModal.tab === 'register' && (
+                  <form
+                    onSubmit={(e) => {
+                      e.preventDefault();
+                      const form = e.target;
+                      const newUser = {
+                        id: 'user-' + Date.now(),
+                        full_name: form.fullName.value,
+                        email: form.email.value,
+                        phone_number: form.phone.value,
+                        location: form.location.value,
+                        skills: form.skills.value.split(',').map(s => s.trim()).filter(Boolean),
+                        experience_level: form.experience.value,
+                        bio: form.bio.value,
+                        avatar_url: `https://api.dicebear.com/7.x/bottts/svg?seed=${encodeURIComponent(form.fullName.value)}`,
+                        hackathons: []
+                      };
+                      setUsers([...users, newUser]);
+                      setCurrentUser(newUser);
+                      setAuthModal({ isOpen: false, tab: 'login' });
+                      setEditProfileModalOpen(true);
+                    }}
+                    className="space-y-2.5 text-xs"
+                  >
+                    <div>
+                      <label className="block text-slate-300 mb-1">Full Name</label>
+                      <input name="fullName" required placeholder="Maya Lin" className="w-full p-2 rounded-lg bg-slate-950 border border-slate-800 text-white" />
+                    </div>
+                    <div className="grid grid-cols-2 gap-2">
+                      <div>
+                        <label className="block text-slate-300 mb-1">Email</label>
+                        <input name="email" type="email" required placeholder="maya@edu.com" className="w-full p-2 rounded-lg bg-slate-950 border border-slate-800 text-white" />
+                      </div>
+                      <div>
+                        <label className="block text-slate-300 mb-1">Phone</label>
+                        <input name="phone" placeholder="+1 (555) 000-0000" className="w-full p-2 rounded-lg bg-slate-950 border border-slate-800 text-white" />
+                      </div>
+                    </div>
+                    <div className="grid grid-cols-2 gap-2">
+                      <div>
+                        <label className="block text-slate-300 mb-1">Location</label>
+                        <input name="location" required placeholder="San Francisco, CA" className="w-full p-2 rounded-lg bg-slate-950 border border-slate-800 text-white" />
+                      </div>
+                      <div>
+                        <label className="block text-slate-300 mb-1">Experience</label>
+                        <select name="experience" className="w-full p-2 rounded-lg bg-slate-950 border border-slate-800 text-white">
+                          <option value="Beginner">Beginner</option>
+                          <option value="Intermediate">Intermediate</option>
+                          <option value="Advanced">Advanced</option>
+                          <option value="Expert">Expert</option>
+                        </select>
+                      </div>
+                    </div>
+                    <div>
+                      <label className="block text-slate-300 mb-1">Skills (comma-separated)</label>
+                      <input name="skills" placeholder="React, Python, UI/UX" className="w-full p-2 rounded-lg bg-slate-950 border border-slate-800 text-white" />
+                    </div>
+                    <div>
+                      <label className="block text-slate-300 mb-1">Bio</label>
+                      <textarea name="bio" rows="2" placeholder="What tracks or projects do you want to build?" className="w-full p-2 rounded-lg bg-slate-950 border border-slate-800 text-white resize-none" />
+                    </div>
+                    <button type="submit" className="w-full mt-2 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-semibold">
+                      Create Account & Setup Hackathons
+                    </button>
+                  </form>
+                )}
+              </div>
+            </div>
+          )}
+
+        </div>
+      );
+    }
+
+    // --- Sub-component: Edit Profile Modal with Dynamic Hackathons ---
+    function EditProfileModalContent({ user, onClose, onSave }) {
+      const [fullName, setFullName] = useState(user?.full_name || '');
+      const [location, setLocation] = useState(user?.location || '');
+      const [phone, setPhone] = useState(user?.phone_number || '');
+      const [experience, setExperience] = useState(user?.experience_level || 'Intermediate');
+      const [bio, setBio] = useState(user?.bio || '');
+      const [skills, setSkills] = useState(user?.skills || []);
+      const [skillInput, setSkillInput] = useState('');
+
+      const initialUpcoming = user?.hackathons?.filter(h => h.type === 'upcoming') || [];
+      const initialPast = user?.hackathons?.filter(h => h.type === 'past') || [];
+
+      const [upcoming, setUpcoming] = useState(initialUpcoming.length > 0 ? initialUpcoming : [{ hackathon_name: '', location: '' }]);
+      const [past, setPast] = useState(initialPast.length > 0 ? initialPast : [{ hackathon_name: '', location: '' }]);
+
+      const handleAddSkill = () => {
+        if (skillInput.trim() && !skills.includes(skillInput.trim())) {
+          setSkills([...skills, skillInput.trim()]);
+          setSkillInput('');
+        }
+      };
+
+      const handleSubmit = (e) => {
+        e.preventDefault();
+        const combined = [
+          ...upcoming.filter(h => h.hackathon_name.trim()).map(h => ({ ...h, type: 'upcoming' })),
+          ...past.filter(h => h.hackathon_name.trim()).map(h => ({ ...h, type: 'past' }))
+        ];
+        onSave({
+          ...user,
+          full_name: fullName,
+          location,
+          phone_number: phone,
+          experience_level: experience,
+          bio,
+          skills,
+          hackathons: combined
+        });
+      };
+
+      return (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-sm animate-in fade-in">
+          <div className="w-full max-w-2xl bg-slate-900 border border-slate-800 rounded-3xl shadow-2xl overflow-hidden flex flex-col max-h-[90vh]">
+            <div className="p-4 border-b border-slate-800 flex items-center justify-between">
+              <h3 className="font-bold text-base text-white">Edit Profile & Hackathons</h3>
+              <button onClick={onClose} className="text-slate-400 hover:text-white"><Icon name="x" className="w-4 h-4" /></button>
+            </div>
+
+            <form onSubmit={handleSubmit} className="p-5 overflow-y-auto space-y-4 text-xs">
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-slate-300 mb-1">Full Name</label>
+                  <input value={fullName} onChange={e => setFullName(e.target.value)} required className="w-full p-2 rounded-lg bg-slate-950 border border-slate-800 text-white" />
+                </div>
+                <div>
+                  <label className="block text-slate-300 mb-1">Location / University</label>
+                  <input value={location} onChange={e => setLocation(e.target.value)} required className="w-full p-2 rounded-lg bg-slate-950 border border-slate-800 text-white" />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-slate-300 mb-1">Phone Number (Hidden by default)</label>
+                  <input value={phone} onChange={e => setPhone(e.target.value)} placeholder="+1 (555) 000-0000" className="w-full p-2 rounded-lg bg-slate-950 border border-slate-800 text-white" />
+                </div>
+                <div>
+                  <label className="block text-slate-300 mb-1">Experience Level</label>
+                  <select value={experience} onChange={e => setExperience(e.target.value)} className="w-full p-2 rounded-lg bg-slate-950 border border-slate-800 text-white">
+                    <option value="Beginner">Beginner</option>
+                    <option value="Intermediate">Intermediate</option>
+                    <option value="Advanced">Advanced</option>
+                    <option value="Expert">Expert</option>
+                  </select>
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-slate-300 mb-1">Bio</label>
+                <textarea value={bio} onChange={e => setBio(e.target.value)} rows="2" className="w-full p-2 rounded-lg bg-slate-950 border border-slate-800 text-white resize-none" />
+              </div>
+
+              {/* Skills Tags */}
+              <div>
+                <label className="block text-slate-300 mb-1 font-semibold">Technical Skills</label>
+                <div className="flex flex-wrap gap-1.5 p-2 rounded-lg bg-slate-950 border border-slate-800 mb-2">
+                  {skills.map(s => (
+                    <span key={s} className="px-2 py-0.5 rounded bg-indigo-600/30 text-indigo-300 font-mono text-[11px] flex items-center space-x-1">
+                      <span>{s}</span>
+                      <button type="button" onClick={() => setSkills(skills.filter(x => x !== s))} className="hover:text-rose-400">×</button>
+                    </span>
+                  ))}
+                </div>
+                <div className="flex space-x-2">
+                  <input
+                    value={skillInput}
+                    onChange={e => setSkillInput(e.target.value)}
+                    onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); handleAddSkill(); } }}
+                    placeholder="Add custom skill (e.g. Next.js, PyTorch, Rust)..."
+                    className="flex-1 p-2 rounded-lg bg-slate-950 border border-slate-800 text-white"
+                  />
+                  <button type="button" onClick={handleAddSkill} className="px-3 py-1.5 rounded-lg bg-slate-800 text-white">Add</button>
+                </div>
+              </div>
+
+              {/* Dynamic Upcoming Hackathons */}
+              <div className="pt-2 border-t border-slate-800">
+                <div className="flex items-center justify-between mb-2">
+                  <label className="font-bold text-indigo-400 uppercase tracking-wider">Upcoming Hackathons</label>
+                  <button type="button" onClick={() => setUpcoming([...upcoming, { hackathon_name: '', location: '' }])} className="text-indigo-400 hover:text-indigo-300 font-semibold">
+                    + Add Hackathon
+                  </button>
+                </div>
+                <div className="space-y-2">
+                  {upcoming.map((h, i) => (
+                    <div key={i} className="flex space-x-2">
+                      <input
+                        placeholder="Hackathon Name (e.g. CalHacks 11.0)"
+                        value={h.hackathon_name}
+                        onChange={e => {
+                          const copy = [...upcoming];
+                          copy[i].hackathon_name = e.target.value;
+                          setUpcoming(copy);
+                        }}
+                        className="flex-1 p-2 rounded-lg bg-slate-950 border border-slate-800 text-white"
+                      />
+                      <input
+                        placeholder="Location (e.g. SF, CA)"
+                        value={h.location}
+                        onChange={e => {
+                          const copy = [...upcoming];
+                          copy[i].location = e.target.value;
+                          setUpcoming(copy);
+                        }}
+                        className="w-36 p-2 rounded-lg bg-slate-950 border border-slate-800 text-white"
+                      />
+                      <button type="button" onClick={() => setUpcoming(upcoming.filter((_, idx) => idx !== i))} className="p-2 text-slate-500 hover:text-rose-400">
+                        <Icon name="trash" className="w-4 h-4" />
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* Dynamic Past Hackathons */}
+              <div className="pt-2 border-t border-slate-800">
+                <div className="flex items-center justify-between mb-2">
+                  <label className="font-bold text-amber-400 uppercase tracking-wider">Recently Participated Hackathons</label>
+                  <button type="button" onClick={() => setPast([...past, { hackathon_name: '', location: '' }])} className="text-amber-400 hover:text-amber-300 font-semibold">
+                    + Add Past Hackathon
+                  </button>
+                </div>
+                <div className="space-y-2">
+                  {past.map((h, i) => (
+                    <div key={i} className="flex space-x-2">
+                      <input
+                        placeholder="Past Hackathon (e.g. TreeHacks 2025)"
+                        value={h.hackathon_name}
+                        onChange={e => {
+                          const copy = [...past];
+                          copy[i].hackathon_name = e.target.value;
+                          setPast(copy);
+                        }}
+                        className="flex-1 p-2 rounded-lg bg-slate-950 border border-slate-800 text-white"
+                      />
+                      <input
+                        placeholder="Location"
+                        value={h.location}
+                        onChange={e => {
+                          const copy = [...past];
+                          copy[i].location = e.target.value;
+                          setPast(copy);
+                        }}
+                        className="w-36 p-2 rounded-lg bg-slate-950 border border-slate-800 text-white"
+                      />
+                      <button type="button" onClick={() => setPast(past.filter((_, idx) => idx !== i))} className="p-2 text-slate-500 hover:text-rose-400">
+                        <Icon name="trash" className="w-4 h-4" />
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              <div className="pt-4 border-t border-slate-800 flex justify-end space-x-2">
+                <button type="button" onClick={onClose} className="px-4 py-2 rounded-xl bg-slate-800 text-slate-300">Cancel</button>
+                <button type="submit" className="px-5 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-semibold">Save Profile</button>
+              </div>
+            </form>
+          </div>
+        </div>
+      );
+    }
+
+    // --- Sub-component: Chat Input Bar ---
+    function ChatInputBar({ onSend, partnerName }) {
+      const [text, setText] = useState('');
+
+      const handleFormSubmit = (e) => {
+        e.preventDefault();
+        if (text.trim()) {
+          onSend(text.trim());
+          setText('');
+        }
+      };
+
+      return (
+        <form onSubmit={handleFormSubmit} className="p-3 sm:p-4 border-t border-slate-800 bg-slate-900/80 flex items-center space-x-2">
+          <input
+            type="text"
+            value={text}
+            onChange={e => setText(e.target.value)}
+            placeholder={`Message ${partnerName}...`}
+            className="flex-1 py-2.5 px-4 rounded-xl bg-slate-950 border border-slate-800 text-sm text-white placeholder-slate-500 focus:border-indigo-500 outline-none"
+          />
+          <button
+            type="submit"
+            disabled={!text.trim()}
+            className={`p-2.5 rounded-xl text-white transition-all ${text.trim() ? 'bg-indigo-600 hover:bg-indigo-500 shadow-md' : 'bg-slate-800 text-slate-500 cursor-not-allowed'}`}
+          >
+            <Icon name="send" className="w-4 h-4" />
+          </button>
+        </form>
+      );
+    }
+
+    // Mount to DOM
+    const root = ReactDOM.createRoot(document.getElementById('root'));
+    root.render(<TeamMatchApp />);
+  </script>
+</body>
+</html>
